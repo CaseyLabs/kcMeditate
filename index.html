@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meditation Timer</title>
+    <meta name="description" content="Meditation timer with gentle gong and ocean wave cues.">
+    <meta name="theme-color" content="#6b5bb5">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Meditation Timer">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+    <link rel="icon" href="icons/icon-192.png" sizes="192x192" type="image/png">
+    <link rel="apple-touch-icon" href="icons/icon-180.png">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #fff;
+        }
+
+        .container {
+            text-align: center;
+            padding: 2.5rem 3rem;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 90%;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 2rem;
+            font-weight: 300;
+            letter-spacing: 2px;
+        }
+
+        .timer-display {
+            font-size: 5rem;
+            font-weight: 200;
+            margin: 2rem 0;
+            letter-spacing: 4px;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+        }
+
+        button {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: #fff;
+            padding: 1rem 2rem;
+            font-size: 1rem;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .time-input {
+            margin-top: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            opacity: 1;
+            transition: opacity 0.5s;
+        }
+
+        .time-input.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .time-input label {
+            font-size: 1rem;
+            letter-spacing: 1px;
+        }
+
+        .time-input input {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: #fff;
+            padding: 0.5rem 1rem;
+            font-size: 1rem;
+            border-radius: 10px;
+            width: 80px;
+            text-align: center;
+            outline: none;
+        }
+
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .time-input input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        @media (max-width: 600px) {
+            .timer-display {
+                font-size: 3.5rem;
+            }
+            .controls {
+                flex-direction: column;
+            }
+            button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Meditation Timer</h1>
+        <h3><em>Wave sound will play at halfway mark</em></h3>
+        <h3><em>3 bells will play at the timer end</em></h3>
+
+        <div class="timer-display" id="display">15:00</div>
+
+        <div class="controls">
+            <button id="startBtn">Start</button>
+            <button id="resetBtn">Reset</button>
+        </div>
+
+        <div class="time-input" id="input-container">
+            <label for="minutes">Duration:</label>
+            <input type="number" id="minutes" min="1" max="120" value="15">
+            <span>minutes</span>
+        </div>
+    </div>
+
+    <script>
+        const display = document.getElementById('display');
+        const startBtn = document.getElementById('startBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const minutesInput = document.getElementById('minutes');
+        const inputContainer = document.getElementById('input-container');
+
+        let totalSeconds = 15 * 60;
+        let remainingSeconds = totalSeconds;
+        let countdown = null;
+        let isRunning = false;
+        let halfwayPlayed = false;
+        let audioCtx;
+
+        function initAudio() {
+            if (!audioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContext();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        // --- SOUND 1: The Deep Gong ---
+        function playGong(times = 1) {
+            initAudio();
+
+            const playSingleGong = (delay = 0) => {
+                const t = audioCtx.currentTime + delay;
+
+                // LOWERED fundamental to 100Hz (Deep/Heavy)
+                const fundamental = 100;
+                const oscillators = [1, 2.4, 4.6]; // Harmonic ratios for metal texture
+                const gains = [0.3, 0.1, 0.05];
+
+                oscillators.forEach((ratio, index) => {
+                    const osc = audioCtx.createOscillator();
+                    const gainNode = audioCtx.createGain();
+
+                    osc.type = 'sine';
+                    osc.frequency.value = fundamental * ratio;
+
+                    // Envelope:
+                    // Attack: 0.03s (Slightly softer attack)
+                    // Decay: 7.0s (Longer sustain)
+                    gainNode.gain.setValueAtTime(0, t);
+                    gainNode.gain.linearRampToValueAtTime(gains[index], t + 0.03);
+                    gainNode.gain.exponentialRampToValueAtTime(0.001, t + 7.0);
+
+                    osc.connect(gainNode);
+                    gainNode.connect(audioCtx.destination);
+
+                    osc.start(t);
+                    osc.stop(t + 8.0); // Stop after fade out completes
+                });
+            };
+
+            // Play multiple gongs with wider spacing (3.5s) to allow resonance
+            for (let i = 0; i < times; i++) {
+                playSingleGong(i * 3.5);
+            }
+        }
+
+        // --- SOUND 2: The Ocean Wave ---
+        function playOceanWave() {
+            initAudio();
+            const t = audioCtx.currentTime;
+            const duration = 5;
+
+            // White Noise Buffer
+            const bufferSize = audioCtx.sampleRate * duration;
+            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                data[i] = Math.random() * 2 - 1;
+            }
+
+            const noise = audioCtx.createBufferSource();
+            noise.buffer = buffer;
+
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.Q.value = 1;
+
+            const gain = audioCtx.createGain();
+
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            // Volume Envelope
+            gain.gain.setValueAtTime(0, t);
+            gain.gain.linearRampToValueAtTime(0.15, t + 2);
+            gain.gain.linearRampToValueAtTime(0, t + duration);
+
+            // Filter Sweep (The "Swish")
+            filter.frequency.setValueAtTime(200, t);
+            filter.frequency.exponentialRampToValueAtTime(1200, t + 2);
+            filter.frequency.exponentialRampToValueAtTime(100, t + duration);
+
+            noise.start(t);
+        }
+
+        function updateDisplay(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            display.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            document.title = isRunning ? `(${display.textContent}) Meditation` : "Meditation Timer";
+        }
+
+        function toggleTimer() {
+            initAudio();
+
+            if (isRunning) {
+                pauseTimer();
+            } else {
+                startTimer();
+            }
+        }
+
+        function startTimer() {
+            if (isRunning) return;
+
+            if (remainingSeconds === totalSeconds) {
+                const inputValue = parseInt(minutesInput.value);
+                if (inputValue && inputValue > 0) {
+                    totalSeconds = inputValue * 60;
+                    if (remainingSeconds === 15 * 60 || remainingSeconds === inputValue * 60) {
+                         remainingSeconds = totalSeconds;
+                    }
+                }
+                playGong(1); // Gong at start
+            }
+
+            isRunning = true;
+            startBtn.textContent = 'Pause';
+            inputContainer.classList.add('hidden');
+
+            countdown = setInterval(() => {
+                remainingSeconds--;
+                updateDisplay(remainingSeconds);
+
+                // Halfway check: Ocean Wave
+                if (!halfwayPlayed && remainingSeconds === Math.floor(totalSeconds / 2)) {
+                    playOceanWave();
+                    halfwayPlayed = true;
+                }
+
+                // End check
+                if (remainingSeconds <= 0) {
+                    finishTimer();
+                }
+            }, 1000);
+        }
+
+        function pauseTimer() {
+            clearInterval(countdown);
+            isRunning = false;
+            startBtn.textContent = 'Resume';
+        }
+
+        function finishTimer() {
+            clearInterval(countdown);
+            remainingSeconds = 0;
+            updateDisplay(0);
+            playGong(3);
+
+            isRunning = false;
+            startBtn.textContent = 'Start';
+            startBtn.disabled = true;
+            inputContainer.classList.remove('hidden');
+        }
+
+        function resetTimer() {
+            clearInterval(countdown);
+            isRunning = false;
+            halfwayPlayed = false;
+
+            const mins = parseInt(minutesInput.value) || 15;
+            totalSeconds = mins * 60;
+            remainingSeconds = totalSeconds;
+
+            updateDisplay(totalSeconds);
+
+            startBtn.textContent = 'Start';
+            startBtn.disabled = false;
+            inputContainer.classList.remove('hidden');
+        }
+
+        startBtn.addEventListener('click', toggleTimer);
+        resetBtn.addEventListener('click', resetTimer);
+
+        minutesInput.addEventListener('change', () => {
+            if (!isRunning) {
+                const mins = parseInt(minutesInput.value) || 15;
+                totalSeconds = mins * 60;
+                remainingSeconds = totalSeconds;
+                halfwayPlayed = false;
+                updateDisplay(totalSeconds);
+            }
+        });
+
+        updateDisplay(totalSeconds);
+    </script>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js', { scope: './' })
+                    .catch((error) => {
+                        console.warn('Service worker registration failed:', error);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
