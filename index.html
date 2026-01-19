@@ -196,6 +196,14 @@
             opacity: 0.8;
         }
 
+        .debug-panel {
+            margin-top: 0.75rem;
+            font-size: 0.8rem;
+            line-height: 1.3;
+            opacity: 0.75;
+            text-align: center;
+        }
+
         @media (max-width: 600px) {
             .timer-display {
                 font-size: 3.5rem;
@@ -233,6 +241,7 @@
         <div class="install" id="installContainer" hidden>
             <button type="button" id="installButton" aria-label="Install Timer as an App">Install Timer as an App</button>
             <div class="install-note" id="installNote" hidden>On iPhone/iPad: Share &gt; Add to Home Screen.</div>
+            <div class="debug-panel" id="installDebug" hidden></div>
         </div>
     </footer>
 
@@ -245,6 +254,7 @@
         const installContainer = document.getElementById('installContainer');
         const installButton = document.getElementById('installButton');
         const installNote = document.getElementById('installNote');
+        const installDebug = document.getElementById('installDebug');
 
         let totalSeconds = 15 * 60;
         let remainingSeconds = totalSeconds;
@@ -258,6 +268,8 @@
         const desktopInstallNoteText = 'Use the Install icon in the address bar or browser menu.';
         const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
         const isAndroid = /android/i.test(navigator.userAgent);
+        let promptSeen = false;
+        const debugEnabled = new URLSearchParams(window.location.search).has('debug');
 
         function initAudio() {
             if (!audioCtx) {
@@ -457,16 +469,42 @@
             installContainer.hidden = false;
         }
 
+        async function updateInstallDebug(reason) {
+            if (!debugEnabled) return;
+            const hasController = !!navigator.serviceWorker && !!navigator.serviceWorker.controller;
+            let manifestOk = false;
+            const manifestLink = document.querySelector('link[rel="manifest"]');
+            if (manifestLink) {
+                try {
+                    const response = await fetch(manifestLink.href, { cache: 'no-store' });
+                    manifestOk = response.ok;
+                } catch (error) {
+                    manifestOk = false;
+                }
+            }
+            installDebug.textContent = [
+                `debug: ${reason}`,
+                `standalone: ${isStandaloneMode()}`,
+                `sw controller: ${hasController}`,
+                `manifest ok: ${manifestOk}`,
+                `beforeinstallprompt: ${promptSeen}`
+            ].join(' · ');
+            installDebug.hidden = false;
+        }
+
         window.addEventListener('beforeinstallprompt', (event) => {
             event.preventDefault();
             deferredInstallPrompt = event;
+            promptSeen = true;
             showInstallOption();
             installNote.hidden = true;
+            updateInstallDebug('beforeinstallprompt');
         });
 
         window.addEventListener('appinstalled', () => {
             deferredInstallPrompt = null;
             installContainer.hidden = true;
+            updateInstallDebug('appinstalled');
         });
 
         installButton.addEventListener('click', async (event) => {
@@ -480,6 +518,7 @@
                     installNote.textContent = desktopInstallNoteText;
                 }
                 installNote.hidden = false;
+                updateInstallDebug('click: no prompt');
                 return;
             }
             deferredInstallPrompt.prompt();
@@ -496,12 +535,14 @@
                 installNote.hidden = false;
             }
             deferredInstallPrompt = null;
+            updateInstallDebug(`click: ${outcome}`);
         });
 
         if (isIOS && !isStandaloneMode()) {
             showInstallOption();
             installNote.textContent = iosInstallNoteText;
             installNote.hidden = false;
+            updateInstallDebug('ios');
         }
 
         updateDisplay(totalSeconds);
