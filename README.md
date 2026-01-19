@@ -4,7 +4,7 @@ A simple Meditation timer, designed and deployed as a progressive web app.
 
 The timer app can be viewed online at:
 
-<strong>https://caseylabs.github.io/kcMeditate/</strong>
+<strong>https://caseylabs.com/apps/simple-meditation-timer</strong>
 
 ## Local development
 
