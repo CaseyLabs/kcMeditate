@@ -1,7 +1,7 @@
 {
   "name": "Meditation Timer",
-  "short_name": "Meditation",
-  "description": "Meditation timer with gentle gong and ocean wave cues.",
+  "short_name": "kcMeditate",
+  "description": "A simple meditation timer.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
