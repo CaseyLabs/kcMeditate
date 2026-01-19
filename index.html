@@ -270,6 +270,14 @@
         const isAndroid = /android/i.test(navigator.userAgent);
         let promptSeen = false;
         const debugEnabled = new URLSearchParams(window.location.search).has('debug');
+        const manifestHref = new URL('manifest.webmanifest', window.location.href).toString();
+
+        if (!document.querySelector('link[rel="manifest"]')) {
+            const link = document.createElement('link');
+            link.rel = 'manifest';
+            link.href = manifestHref;
+            document.head.appendChild(link);
+        }
 
         function initAudio() {
             if (!audioCtx) {
