@@ -254,7 +254,10 @@
         let audioCtx;
         let deferredInstallPrompt = null;
         const iosInstallNoteText = 'On iPhone/iPad: Share > Add to Home Screen.';
+        const androidInstallNoteText = 'On Android: Chrome menu > Install app.';
         const desktopInstallNoteText = 'Use the Install icon in the address bar or browser menu.';
+        const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+        const isAndroid = /android/i.test(navigator.userAgent);
 
         function initAudio() {
             if (!audioCtx) {
@@ -458,6 +461,7 @@
             event.preventDefault();
             deferredInstallPrompt = event;
             showInstallOption();
+            installNote.hidden = true;
         });
 
         window.addEventListener('appinstalled', () => {
@@ -468,7 +472,13 @@
         installButton.addEventListener('click', async (event) => {
             event.preventDefault();
             if (!deferredInstallPrompt) {
-                installNote.textContent = desktopInstallNoteText;
+                if (isIOS) {
+                    installNote.textContent = iosInstallNoteText;
+                } else if (isAndroid) {
+                    installNote.textContent = androidInstallNoteText;
+                } else {
+                    installNote.textContent = desktopInstallNoteText;
+                }
                 installNote.hidden = false;
                 return;
             }
@@ -478,13 +488,17 @@
                 installContainer.hidden = true;
                 installNote.hidden = true;
             } else {
-                installNote.textContent = desktopInstallNoteText;
+                if (isAndroid) {
+                    installNote.textContent = androidInstallNoteText;
+                } else {
+                    installNote.textContent = desktopInstallNoteText;
+                }
                 installNote.hidden = false;
             }
             deferredInstallPrompt = null;
         });
 
-        if (/iphone|ipad|ipod/i.test(navigator.userAgent) && !isStandaloneMode()) {
+        if (isIOS && !isStandaloneMode()) {
             showInstallOption();
             installNote.textContent = iosInstallNoteText;
             installNote.hidden = false;
