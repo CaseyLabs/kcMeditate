@@ -4,7 +4,9 @@ A simple Meditation timer, designed and deployed as a progressive web app.
 
 The timer app can be viewed online at:
 
-<strong>https://caseylabs.com/apps/simple-meditation-timer</strong>
+**https://caseylabs.com/apps/simple-meditation-timer/**
+
+![Demo](./demo.png)
 
 ## Local development
 
