@@ -473,21 +473,34 @@
             if (!debugEnabled) return;
             const hasController = !!navigator.serviceWorker && !!navigator.serviceWorker.controller;
             let manifestOk = false;
+            let manifestStatus = 'missing';
+            let manifestCached = false;
             const manifestLink = document.querySelector('link[rel="manifest"]');
             if (manifestLink) {
                 try {
                     const response = await fetch(manifestLink.href, { cache: 'no-store' });
                     manifestOk = response.ok;
+                    manifestStatus = `${response.status}`;
                 } catch (error) {
                     manifestOk = false;
+                    manifestStatus = 'error';
+                }
+                if ('caches' in window) {
+                    try {
+                        const cached = await caches.match(manifestLink.href);
+                        manifestCached = !!cached;
+                    } catch (error) {
+                        manifestCached = false;
+                    }
                 }
             }
             installDebug.textContent = [
                 `debug: ${reason}`,
                 `standalone: ${isStandaloneMode()}`,
                 `sw controller: ${hasController}`,
-                `manifest ok: ${manifestOk}`,
-                `beforeinstallprompt: ${promptSeen}`
+                `manifest: ${manifestOk} (${manifestStatus}, cache: ${manifestCached})`,
+                `beforeinstallprompt: ${promptSeen}`,
+                `manifest url: ${manifestLink ? manifestLink.href : 'none'}`
             ].join(' · ');
             installDebug.hidden = false;
         }
