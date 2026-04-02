@@ -104,13 +104,93 @@
             border-bottom-color: rgba(255, 255, 255, 0.8);
         }
 
+        .timer-display-shell {
+            margin: 2rem 0 1.5rem;
+        }
+
         .timer-display {
             font-size: 5rem;
             font-weight: 200;
-            margin: 2rem 0;
             letter-spacing: 4px;
             text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
             font-variant-numeric: tabular-nums;
+            min-height: 1.2em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.35em 0.45em;
+            border-radius: 24px;
+            border: 2px solid transparent;
+            transition: background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+        }
+
+        .timer-display.editable {
+            cursor: pointer;
+            background: rgba(224, 224, 224, 0.18);
+            border-color: rgba(255, 255, 255, 0.24);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .timer-display.editable:hover,
+        .timer-display.editable:focus-visible {
+            background: rgba(224, 224, 224, 0.24);
+            border-color: rgba(255, 255, 255, 0.45);
+            box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.08);
+            outline: none;
+        }
+
+        .timer-display.hidden,
+        .timer-editor.hidden {
+            display: none;
+        }
+
+        .timer-editor {
+            display: inline-flex;
+            align-items: baseline;
+            justify-content: center;
+            gap: 0.75rem;
+            min-height: 6rem;
+        }
+
+        .timer-editor input {
+            width: 150px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: #fff;
+            padding: 0.5rem 1rem;
+            font-size: 4rem;
+            font-weight: 200;
+            border-radius: 20px;
+            text-align: center;
+            outline: none;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .timer-editor span {
+            font-size: 1.2rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            opacity: 0.8;
+        }
+
+        .timer-hint {
+            min-height: 1.4rem;
+            margin-top: 0.75rem;
+            font-size: 0.95rem;
+            opacity: 0.8;
+            letter-spacing: 0.4px;
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
         }
 
         .controls {
@@ -151,46 +231,10 @@
             box-shadow: none;
         }
 
-        .time-input {
-            margin-top: 1.5rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 1rem;
-            opacity: 1;
-            transition: opacity 0.5s;
-        }
-
-        .time-input.hidden {
-            opacity: 0;
-            pointer-events: none;
-        }
-
-        .time-input label {
-            font-size: 1rem;
-            letter-spacing: 1px;
-        }
-
-        .time-input input {
-            background: rgba(255, 255, 255, 0.2);
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            color: #fff;
-            padding: 0.5rem 1rem;
-            font-size: 1rem;
-            border-radius: 10px;
-            width: 80px;
-            text-align: center;
-            outline: none;
-        }
-
         input::-webkit-outer-spin-button,
         input::-webkit-inner-spin-button {
             -webkit-appearance: none;
             margin: 0;
-        }
-
-        .time-input input::placeholder {
-            color: rgba(255, 255, 255, 0.6);
         }
 
         .install {
@@ -262,9 +306,21 @@
             .timer-display {
                 font-size: 3.5rem;
             }
+
+            .timer-editor {
+                min-height: 4.5rem;
+                gap: 0.5rem;
+            }
+
+            .timer-editor input {
+                width: 120px;
+                font-size: 3rem;
+            }
+
             .controls {
                 flex-direction: column;
             }
+
             button {
                 width: 100%;
             }
@@ -278,17 +334,19 @@
         <span><em>Wave plays at halfway mark.<br>
         <em>3 bells plays when timer ends.</em></span>
 
-        <div class="timer-display" id="display">15:00</div>
+        <div class="timer-display-shell">
+            <div class="timer-display editable" id="display" role="button" tabindex="0" aria-label="Meditation session timer. Activate to set the duration.">15:00</div>
+            <form class="timer-editor hidden" id="timerEditor" novalidate>
+                <label class="sr-only" for="minutesEditor">Meditation duration in minutes</label>
+                <input type="number" id="minutesEditor" min="1" max="120" value="15" inputmode="numeric">
+                <span>min</span>
+            </form>
+            <div class="timer-hint" id="timerHint">Tap the timer to set your session length.</div>
+        </div>
 
         <div class="controls">
             <button id="startBtn">Start</button>
             <button id="resetBtn">Reset</button>
-        </div>
-
-        <div class="time-input" id="input-container">
-            <label for="minutes">Duration:</label>
-            <input type="number" id="minutes" min="1" max="120" value="15">
-            <span>minutes</span>
         </div>
     </div>
 
@@ -301,17 +359,21 @@
     </footer>
 
     <script>
+        const DEFAULT_MINUTES = 15;
+        const MIN_DURATION_MINUTES = 1;
+        const MAX_DURATION_MINUTES = 120;
         const display = document.getElementById('display');
+        const timerEditor = document.getElementById('timerEditor');
+        const minutesEditor = document.getElementById('minutesEditor');
+        const timerHint = document.getElementById('timerHint');
         const startBtn = document.getElementById('startBtn');
         const resetBtn = document.getElementById('resetBtn');
-        const minutesInput = document.getElementById('minutes');
-        const inputContainer = document.getElementById('input-container');
         const installContainer = document.getElementById('installContainer');
         const installButton = document.getElementById('installButton');
         const installNote = document.getElementById('installNote');
         const installDebug = document.getElementById('installDebug');
 
-        let totalSeconds = 15 * 60;
+        let totalSeconds = DEFAULT_MINUTES * 60;
         let remainingSeconds = totalSeconds;
         let countdown = null;
         let isRunning = false;
@@ -324,6 +386,7 @@
         const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
         const isAndroid = /android/i.test(navigator.userAgent);
         let promptSeen = false;
+        let isEditingDuration = false;
         const debugEnabled = new URLSearchParams(window.location.search).has('debug');
         const manifestHref = new URL('manifest.webmanifest', window.location.href).toString();
 
@@ -424,11 +487,86 @@
             noise.start(t);
         }
 
+        function getClampedMinutes(value) {
+            const minutes = parseInt(value, 10);
+            if (Number.isNaN(minutes)) {
+                return DEFAULT_MINUTES;
+            }
+            return Math.min(Math.max(minutes, MIN_DURATION_MINUTES), MAX_DURATION_MINUTES);
+        }
+
+        function syncDurationEditor(minutes) {
+            minutesEditor.value = minutes;
+        }
+
+        function updateDurationHint() {
+            if (isEditingDuration) {
+                timerHint.textContent = 'Set your session length in minutes.';
+                return;
+            }
+            if (isRunning) {
+                timerHint.textContent = '';
+                return;
+            }
+            if (remainingSeconds !== totalSeconds || startBtn.disabled) {
+                timerHint.textContent = 'Reset to choose a new session length.';
+                return;
+            }
+            timerHint.textContent = 'Tap the timer to set your session length.';
+        }
+
+        function refreshDurationAccess() {
+            const canEditDuration = !isRunning && remainingSeconds === totalSeconds && !startBtn.disabled;
+            display.classList.toggle('editable', canEditDuration);
+            display.tabIndex = canEditDuration ? 0 : -1;
+            display.setAttribute('aria-disabled', canEditDuration ? 'false' : 'true');
+            updateDurationHint();
+        }
+
+        function setDurationMinutes(minutes) {
+            const clampedMinutes = getClampedMinutes(minutes);
+            totalSeconds = clampedMinutes * 60;
+            remainingSeconds = totalSeconds;
+            halfwayPlayed = false;
+            syncDurationEditor(clampedMinutes);
+            updateDisplay(totalSeconds);
+            refreshDurationAccess();
+        }
+
+        function showDurationEditor() {
+            if (isRunning || remainingSeconds !== totalSeconds || startBtn.disabled) {
+                return;
+            }
+            isEditingDuration = true;
+            syncDurationEditor(Math.floor(totalSeconds / 60));
+            display.classList.add('hidden');
+            timerEditor.classList.remove('hidden');
+            refreshDurationAccess();
+            minutesEditor.focus();
+            minutesEditor.select();
+        }
+
+        function hideDurationEditor(options = {}) {
+            const { restoreFocus = false } = options;
+            isEditingDuration = false;
+            timerEditor.classList.add('hidden');
+            display.classList.remove('hidden');
+            refreshDurationAccess();
+            if (restoreFocus) {
+                display.focus();
+            }
+        }
+
+        function applyDurationFromEditor() {
+            setDurationMinutes(minutesEditor.value);
+            hideDurationEditor();
+        }
+
         function updateDisplay(seconds) {
             const mins = Math.floor(seconds / 60);
             const secs = seconds % 60;
             display.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-            document.title = isRunning ? `(${display.textContent}) Meditation` : "Meditation Timer";
+            document.title = isRunning ? `(${display.textContent}) Meditation` : 'Meditation Timer';
         }
 
         function toggleTimer() {
@@ -444,32 +582,29 @@
         function startTimer() {
             if (isRunning) return;
 
+            if (isEditingDuration) {
+                applyDurationFromEditor();
+            }
+
             if (remainingSeconds === totalSeconds) {
-                const inputValue = parseInt(minutesInput.value);
-                if (inputValue && inputValue > 0) {
-                    totalSeconds = inputValue * 60;
-                    if (remainingSeconds === 15 * 60 || remainingSeconds === inputValue * 60) {
-                         remainingSeconds = totalSeconds;
-                    }
-                }
-                playGong(1); // Gong at start
+                playGong(1);
             }
 
             isRunning = true;
             startBtn.textContent = 'Pause';
-            inputContainer.classList.add('hidden');
+            hideDurationEditor();
+            updateDisplay(remainingSeconds);
+            refreshDurationAccess();
 
             countdown = setInterval(() => {
                 remainingSeconds--;
                 updateDisplay(remainingSeconds);
 
-                // Halfway check: Ocean Wave
                 if (!halfwayPlayed && remainingSeconds === Math.floor(totalSeconds / 2)) {
                     playOceanWave();
                     halfwayPlayed = true;
                 }
 
-                // End check
                 if (remainingSeconds <= 0) {
                     finishTimer();
                 }
@@ -480,46 +615,54 @@
             clearInterval(countdown);
             isRunning = false;
             startBtn.textContent = 'Resume';
+            updateDisplay(remainingSeconds);
+            refreshDurationAccess();
         }
 
         function finishTimer() {
             clearInterval(countdown);
             remainingSeconds = 0;
+            isRunning = false;
             updateDisplay(0);
             playGong(3);
 
-            isRunning = false;
             startBtn.textContent = 'Start';
             startBtn.disabled = true;
-            inputContainer.classList.remove('hidden');
+            hideDurationEditor();
+            refreshDurationAccess();
         }
 
         function resetTimer() {
             clearInterval(countdown);
             isRunning = false;
-            halfwayPlayed = false;
-
-            const mins = parseInt(minutesInput.value) || 15;
-            totalSeconds = mins * 60;
-            remainingSeconds = totalSeconds;
-
-            updateDisplay(totalSeconds);
-
             startBtn.textContent = 'Start';
             startBtn.disabled = false;
-            inputContainer.classList.remove('hidden');
+            hideDurationEditor();
+            setDurationMinutes(minutesEditor.value);
         }
 
         startBtn.addEventListener('click', toggleTimer);
         resetBtn.addEventListener('click', resetTimer);
-
-        minutesInput.addEventListener('change', () => {
-            if (!isRunning) {
-                const mins = parseInt(minutesInput.value) || 15;
-                totalSeconds = mins * 60;
-                remainingSeconds = totalSeconds;
-                halfwayPlayed = false;
-                updateDisplay(totalSeconds);
+        display.addEventListener('click', showDurationEditor);
+        display.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                showDurationEditor();
+            }
+        });
+        timerEditor.addEventListener('submit', (event) => {
+            event.preventDefault();
+            applyDurationFromEditor();
+        });
+        minutesEditor.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                syncDurationEditor(Math.floor(totalSeconds / 60));
+                hideDurationEditor({ restoreFocus: true });
+            }
+        });
+        minutesEditor.addEventListener('blur', () => {
+            if (isEditingDuration) {
+                applyDurationFromEditor();
             }
         });
 
@@ -622,6 +765,8 @@
         }
 
         updateDisplay(totalSeconds);
+        syncDurationEditor(DEFAULT_MINUTES);
+        refreshDurationAccess();
     </script>
 
     <script>
