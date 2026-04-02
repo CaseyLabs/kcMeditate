@@ -66,6 +66,29 @@ def validate_manifest_icons():
         ensure_exists(icon_path, f"manifest icon: {src}")
 
 
+def validate_timer_markup():
+    index_path = os.path.join(ROOT, "index.html")
+    ensure_exists(index_path, "main page")
+    content = read_file(index_path)
+
+    required_patterns = [
+        (r'id="display"', "timer display"),
+        (r'id="timerEditor"', "inline timer editor"),
+        (r'id="minutesEditor"', "timer duration input"),
+    ]
+    for pattern, label in required_patterns:
+        if not re.search(pattern, content):
+            fail(f"Missing required timer markup for {label} in index.html")
+
+    removed_patterns = [
+        (r'id="input-container"', "legacy duration input container"),
+        (r'id="minutes"', "legacy duration input"),
+    ]
+    for pattern, label in removed_patterns:
+        if re.search(pattern, content):
+            fail(f"Found deprecated timer markup for {label} in index.html")
+
+
 def main():
     required = [
         "index.html",
@@ -78,6 +101,7 @@ def main():
 
     validate_core_assets()
     validate_manifest_icons()
+    validate_timer_markup()
     print("OK: asset validation passed")
 
 

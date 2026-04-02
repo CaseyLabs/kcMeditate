@@ -1,6 +1,6 @@
 # kcMeditate
 
-A simple Meditation timer, designed and deployed as a progressive web app.
+A simple meditation timer, designed and deployed as a progressive web app. The session length is now edited directly from the large timer display before you start.
 
 The timer app can be viewed online at:
 
@@ -10,13 +10,29 @@ The timer app can be viewed online at:
 
 ## Local development
 
-Serve the app:
+Build the local non-root container image:
 
 ```sh
-make serve
+make build
 ```
 
-Then open `http://localhost:8000`.
+Run the app on `http://localhost:8000`:
+
+```sh
+make run
+```
+
+Stop the running container:
+
+```sh
+make stop
+```
+
+Remove the local image:
+
+```sh
+make clean
+```
 
 ## Tests
 
