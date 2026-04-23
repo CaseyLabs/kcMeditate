@@ -1,6 +1,6 @@
 # kcMeditate
 
-A simple meditation timer, designed and deployed as a progressive web app. The session length is now edited directly from the large timer display before you start.
+A simple meditation timer, designed and deployed as a progressive web app (PWA).
 
 The timer app can be viewed online at:
 
@@ -8,7 +8,11 @@ The timer app can be viewed online at:
 
 ![Demo](./demo.png)
 
-## Local development
+## Requirements
+
+- `docker` installed
+
+## Development
 
 Build the local non-root container image:
 
